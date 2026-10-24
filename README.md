@@ -20,6 +20,8 @@ browse them, change capture settings and see how the battery is holding up.
 - **Verify** — read every file from the camera again and compare it with the Mac copy (SHA-256).
 - **Free up the camera** — delete files from the camera *only* after they've been verified byte for byte.
 - **Library** — thumbnails by day, photo / video filter, video playback, per-capture metadata.
+- **Delete what you don't want** — select captures in the library and move them to the Trash. Copies still on the
+  camera are deleted too (right away, or the next time it's connected), and deleted captures are never imported again.
 - **Capture settings** — what the timer, double tap and triple tap do (photo, video, burst, nothing),
   capture interval (10 s – 5 min), video length, video quality (up to 1080p30), capture sound.
   For example, the timer can record a 10-second video every 5 minutes instead of taking photos.
@@ -96,8 +98,10 @@ Notes from using it:
 
 ## Safety
 
-- Files are deleted from the camera only through **Free Up Camera**, and only those whose Mac copy matches
-  byte for byte. Nothing else in the app deletes anything.
+- Files are deleted from the camera in two cases only: **Free Up Camera**, which deletes only files whose Mac copy
+  matches byte for byte, and captures you delete yourself in the library (after a confirmation).
+- Deleting in the library moves the Mac copies to the Trash, so they can be put back. The list of deleted captures is
+  `deleted.txt` in the library folder; remove a line from it to allow that capture to be imported again.
 - The app never writes firmware.
 - If the camera stops responding, the app port-resets it over USB (the same as unplugging it); storage isn't touched.
 
