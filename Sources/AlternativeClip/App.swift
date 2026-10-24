@@ -24,6 +24,15 @@ struct AlternativeClipApp: App {
                 Button("ライブラリを再読み込み") { model.reloadLibrary() }
                     .keyboardShortcut("r")
             }
+            CommandGroup(after: .pasteboard) {
+                Divider()
+                Button("すべてを選択") { model.selectAllToken += 1 }
+                    .keyboardShortcut("a")
+                    .disabled(model.pane != .library)
+                Button("ゴミ箱に入れる") { model.pendingDelete = Array(model.selectedCaptures) }
+                    .keyboardShortcut(.delete, modifiers: .command)
+                    .disabled(model.pane != .library || model.selectedCaptures.isEmpty)
+            }
         }
     }
 }

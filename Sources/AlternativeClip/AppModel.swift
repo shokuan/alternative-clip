@@ -41,7 +41,10 @@ final class DeviceMonitor {
 final class AppModel: ObservableObject {
     enum Phase: Equatable { case idle, working(String), progress(String, Double) }
 
-    @Published var connected = USBTransport.isConnected
+    /// `--snapshot` renders the UI for screenshots and must never talk to a real camera.
+    static let isSnapshotMode = CommandLine.arguments.contains("--snapshot")
+
+    @Published var connected = isSnapshotMode ? false : USBTransport.isConnected
     @Published var info: Clip2.Info?
     @Published var settings: Clip2.Settings?
     @Published var editing = Clip2.Settings()
@@ -65,8 +68,10 @@ final class AppModel: ObservableObject {
     private var importedThisConnection = false
 
     init() {
-        monitor = DeviceMonitor { [weak self] up in
-            Task { @MainActor in self?.deviceChanged(up) }
+        if !Self.isSnapshotMode {
+            monitor = DeviceMonitor { [weak self] up in
+                Task { @MainActor in self?.deviceChanged(up) }
+            }
         }
         reloadLibrary()
         loadLastSeen()
@@ -117,6 +122,7 @@ final class AppModel: ObservableObject {
     /// Runs `body` with an open camera on the USB queue, retrying while another process holds it.
     private func withClip<T>(_ label: String, _ body: @escaping (Clip2, @escaping (String, Double?) -> Void) throws -> T,
                              done: @escaping (Result<T, Error>) -> Void) {
+        guard !Self.isSnapshotMode else { return }
         phase = .working(label)
         lastError = nil
         worker.async {
@@ -156,6 +162,7 @@ final class AppModel: ObservableObject {
 
     /// Also keeps ~/Library/Logs/Alternative Clip/app.log so problems can be looked at later.
     nonisolated static func writeLogFile(_ s: String) {
+        guard !CommandLine.arguments.contains("--snapshot") else { return }
         let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/Alternative Clip")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("app.log")
@@ -175,8 +182,9 @@ final class AppModel: ObservableObject {
             self.info = i; self.settings = s; self.editing = s; self.ranges = rg
             self.saveLastSeen(i, s)
             self.append("Camera: fw \(i.firmware), battery \(i.battery)%\(i.isCharging ? " (charging)" : ""), timer=\(s.onTimer) every \(s.interval)s, video \(s.videoDuration)s \(s.quality), sound \(s.sound ? "on" : "off"), \(files.count) files on camera")
+            let deleted = LibraryStore.deletedBases()
             let notOnMac = files.filter { f in
-                guard let u = LibraryStore.localURL(for: f.name) else { return false }
+                guard !deleted.contains(LibraryStore.baseName(f.name)), let u = LibraryStore.localURL(for: f.name) else { return false }
                 return (try? u.resourceValues(forKeys: [.fileSizeKey]).fileSize) != f.size
             }.count
             self.cameraFiles = (files.count, files.reduce(0) { $0 + $1.size }, notOnMac)
@@ -227,10 +235,11 @@ final class AppModel: ObservableObject {
 
     func importNew(auto: Bool = false) {
         let sync = syncClockOnImport
-        withClip(String(localized: "カメラのファイルを確認中…"), { clip, report -> (Int, Int) in
+        withClip(String(localized: "カメラのファイルを確認中…"), { clip, report -> (Int, Int, Int) in
             let files = try clip.eventFiles()
+            let deleted = LibraryStore.deletedBases()
             let todo = files.filter { f in
-                guard let u = LibraryStore.localURL(for: f.name) else { return false }
+                guard !deleted.contains(LibraryStore.baseName(f.name)), let u = LibraryStore.localURL(for: f.name) else { return false }
                 return (try? u.resourceValues(forKeys: [.fileSizeKey]).fileSize) != f.size
             }
             let need = todo.reduce(0) { $0 + $1.size }
@@ -253,11 +262,13 @@ final class AppModel: ObservableObject {
                 ledger.append("\(LibraryStore.sha256(data))  \(url.deletingLastPathComponent().lastPathComponent)/\(f.name)")
                 done += f.size
             }
+            let removed = try Self.removeDeleted(from: clip, files: files, deleted: deleted)
             if sync { try clip.syncClock() }
-            return (todo.count, need)
+            return (todo.count, need, removed)
         }) { [weak self] r in
             guard let self else { return }
-            if case .success(let (n, bytes)) = r {
+            if case .success(let (n, bytes, removed)) = r {
+                if removed > 0 { self.append(String(localized: "削除済みのファイルをカメラから消した: \(removed)件")) }
                 self.importedThisConnection = true
                 let msg = n == 0 ? String(localized: "新しいファイルはなかった") : String(localized: "\(n)ファイル（\(Self.mb(bytes))）を取り込んだ")
                 self.append(msg + (sync ? String(localized: "・時計を合わせた") : ""))
@@ -322,6 +333,53 @@ final class AppModel: ObservableObject {
         withClip(String(localized: "時計を合わせてる…"), { clip, _ in try clip.syncClock() }) { [weak self] r in
             if case .success = r { self?.append(String(localized: "時計をMacに合わせた")); self?.refresh() }
         }
+    }
+
+    // MARK: deleting captures
+
+    /// Captures selected in the library grid (the detail panel shows `librarySelection`).
+    @Published var selectedCaptures: Set<Capture> = []
+    /// Captures waiting for the user to confirm deletion.
+    @Published var pendingDelete: [Capture]?
+    /// Bumped by Edit > Select All; the library selects everything it shows.
+    @Published var selectAllToken = 0
+
+    /// Moves the captures' files to the Trash, remembers them so they are never imported again,
+    /// and deletes them from the camera now (if connected) or the next time it is connected.
+    func trash(_ captures: [Capture]) {
+        guard !captures.isEmpty else { return }
+        do {
+            let n = try LibraryStore.trash(captures)
+            append(String(localized: "\(n)件をゴミ箱に入れた"))
+        } catch {
+            lastError = String(localized: "ゴミ箱に入れられなかった: \(error.localizedDescription)")
+        }
+        selectedCaptures = []
+        librarySelection = nil
+        reloadLibrary()
+        if connected { removeDeletedFromCamera() }
+    }
+
+    func removeDeletedFromCamera() {
+        let deleted = LibraryStore.deletedBases()
+        guard !deleted.isEmpty else { return }
+        withClip(String(localized: "削除したものをカメラから消してる…"), { clip, _ -> Int in
+            try Self.removeDeleted(from: clip, files: try clip.eventFiles(), deleted: deleted)
+        }) { [weak self] r in
+            guard let self, case .success(let n) = r else { return }
+            if n > 0 { self.append(String(localized: "削除済みのファイルをカメラから消した: \(n)件")) }
+            self.refresh()
+        }
+    }
+
+    /// Deletes from the camera every file whose capture is on the deleted list. Runs on the USB queue.
+    nonisolated static func removeDeleted(from clip: Clip2, files: [(path: String, name: String, size: Int)], deleted: Set<String>) throws -> Int {
+        var n = 0
+        for f in files where deleted.contains(LibraryStore.baseName(f.name)) {
+            try clip.deleteFile(f.path)
+            n += 1
+        }
+        return n
     }
 
     // MARK: last seen state

@@ -2,6 +2,8 @@
 "Alternative Clip" = "Alternative Clip";
 "新しいファイルを取り込む" = "Import New Files";
 "ライブラリを再読み込み" = "Reload Library";
+"すべてを選択" = "Select All";
+"ゴミ箱に入れる" = "Move to Trash";
 "カメラ" = "Camera";
 "ライブラリ" = "Library";
 "撮影設定" = "Capture Settings";
@@ -21,6 +23,7 @@
 "照合中…" = "Verifying…";
 "設定を書き込み中…" = "Writing settings…";
 "取り込み中 %lld/%lld" = "Importing %lld/%lld";
+"削除済みのファイルをカメラから消した: %lld件" = "Removed %lld deleted files from the camera";
 "新しいファイルはなかった" = "No new files";
 "%lldファイル（%@）を取り込んだ" = "Imported %lld files (%@)";
 "・時計を合わせた" = " · clock synced";
@@ -33,6 +36,9 @@
 "カメラの再起動を待ってる…" = "Waiting for the camera to restart…";
 "時計を合わせてる…" = "Syncing clock…";
 "時計をMacに合わせた" = "Camera clock set to Mac time";
+"%lld件をゴミ箱に入れた" = "Moved %lld items to the Trash";
+"ゴミ箱に入れられなかった: %@" = "Couldn't move to the Trash: %@";
+"削除したものをカメラから消してる…" = "Removing deleted items from the camera…";
 "このフォルダにする" = "Use This Folder";
 "取り込んだ写真と動画を保存するフォルダを選んでね" = "Choose the folder where imported photos and videos are saved";
 "保存先を変更: %@" = "Library folder changed: %@";
@@ -111,8 +117,15 @@
 "表示" = "Show";
 "サムネイルの大きさ" = "Thumbnail size";
 "この日のフォルダをFinderで開く" = "Open this day's folder in Finder";
+"選んだものを削除（⌘⌫）" = "Delete the selected items (⌘⌫)";
 "サイズ" = "Size";
 "Finderで開く" = "Open in Finder";
+"%lld件を削除する？" = "Delete %lld items?";
+"削除" = "Delete";
+"Macのファイルはゴミ箱に移す（あとで戻せる）。カメラに同じものが残っていたらそれも消す（こっちは元に戻せない）。消したものは、もう取り込まない。" = "Files on this Mac go to the Trash (you can put them back). Copies still on the camera are deleted too, and that can't be undone. Deleted items won't be imported again.";
+"%lld件をゴミ箱に入れる" = "Move %lld Items to Trash";
+"開く" = "Open";
+"Finderで表示" = "Show in Finder";
 "日付不明" = "Unknown date";
 "時計リセット中に撮影" = "Clock was reset";
 "%lld" = "%lld";
@@ -133,8 +146,6 @@
 "タップ" = "Tap";
 "meta.type.photo" = "Photo";
 "meta.type.video" = "Video";
-"開く" = "Open";
-"Finderで表示" = "Show in Finder";
 "なにもしない" = "Nothing";
 "写真" = "Photo";
 "連写" = "Burst";

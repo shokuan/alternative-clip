@@ -5,6 +5,7 @@ struct LibraryView: View {
     @EnvironmentObject var model: AppModel
     @State private var filter = Filter.all
     @State private var tileSize: Double = 150
+    @State private var anchor: Capture?
 
     enum Filter: String, CaseIterable {
         case all, photos, videos
@@ -59,11 +60,27 @@ struct LibraryView: View {
                     NSWorkspace.shared.open(day.map { LibraryStore.root.appendingPathComponent($0) } ?? LibraryStore.root)
                 } label: { Label("Finderで開く", systemImage: "folder") }
                     .help("この日のフォルダをFinderで開く")
+                Button {
+                    model.pendingDelete = Array(model.selectedCaptures)
+                } label: { Label("ゴミ箱に入れる", systemImage: "trash") }
+                    .help("選んだものを削除（⌘⌫）")
+                    .disabled(model.selectedCaptures.isEmpty)
             }
+        }
+        .confirmationDialog(deleteTitle, isPresented: Binding(get: { model.pendingDelete != nil }, set: { if !$0 { model.pendingDelete = nil } })) {
+            Button("削除", role: .destructive) {
+                if let caps = model.pendingDelete { model.trash(caps) }
+                model.pendingDelete = nil
+            }
+        } message: {
+            Text("Macのファイルはゴミ箱に移す（あとで戻せる）。カメラに同じものが残っていたらそれも消す（こっちは元に戻せない）。消したものは、もう取り込まない。")
+        }
+        .onChange(of: model.selectAllToken) { _, _ in
+            model.selectedCaptures = Set(captures)
         }
         .onAppear { if day == nil { model.libraryDay = model.libraryDays.first?.day } }
         .onChange(of: model.libraryDays.map(\.day)) { _, days in if day == nil || !days.contains(day!) { model.libraryDay = days.first } }
-        .onChange(of: model.libraryDay) { _, _ in model.librarySelection = nil }
+        .onChange(of: model.libraryDay) { _, _ in model.librarySelection = nil; model.selectedCaptures = []; anchor = nil }
     }
 
     @ViewBuilder private var grid: some View {
@@ -76,14 +93,48 @@ struct LibraryView: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: tileSize, maximum: tileSize * 1.6), spacing: 6)], spacing: 6) {
                     ForEach(captures) { c in
-                        Thumb(capture: c, selected: c == model.librarySelection)
-                            .onTapGesture { model.librarySelection = c }
+                        Thumb(capture: c, selected: model.selectedCaptures.contains(c))
                             .onTapGesture(count: 2) { NSWorkspace.shared.open(c.media) }
+                            .simultaneousGesture(TapGesture().onEnded { click(c) })
+                            .contextMenu { menu(for: c) }
                     }
                 }
                 .padding(10)
             }
             .background(Color(nsColor: .textBackgroundColor).opacity(0.25))
+            .focusable()
+            .focusEffectDisabled()
+            .onDeleteCommand { if !model.selectedCaptures.isEmpty { model.pendingDelete = Array(model.selectedCaptures) } }
+        }
+    }
+}
+
+extension LibraryView {
+    private var deleteTitle: String {
+        String(localized: "\(model.pendingDelete?.count ?? 0)件を削除する？")
+    }
+
+    /// Click selects one; ⌘-click toggles; ⇧-click extends from the last clicked item.
+    private func click(_ c: Capture) {
+        let flags = NSEvent.modifierFlags
+        if flags.contains(.command) {
+            if model.selectedCaptures.contains(c) { model.selectedCaptures.remove(c) } else { model.selectedCaptures.insert(c) }
+        } else if flags.contains(.shift), let a = anchor, let i = captures.firstIndex(of: a), let j = captures.firstIndex(of: c) {
+            model.selectedCaptures.formUnion(captures[min(i, j)...max(i, j)])
+        } else {
+            model.selectedCaptures = [c]
+        }
+        anchor = c
+        model.librarySelection = model.selectedCaptures.contains(c) ? c : model.selectedCaptures.first
+    }
+
+    @ViewBuilder private func menu(for c: Capture) -> some View {
+        let targets = model.selectedCaptures.contains(c) ? Array(model.selectedCaptures) : [c]
+        Button("開く") { NSWorkspace.shared.open(c.media) }
+        Button("Finderで表示") { NSWorkspace.shared.activateFileViewerSelecting(targets.map(\.media)) }
+        Divider()
+        Button(targets.count > 1 ? String(localized: "\(targets.count)件をゴミ箱に入れる") : String(localized: "ゴミ箱に入れる"), role: .destructive) {
+            model.pendingDelete = targets
         }
     }
 }

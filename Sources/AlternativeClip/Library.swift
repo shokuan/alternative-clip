@@ -114,6 +114,51 @@ enum LibraryStore {
         return result
     }
 
+    // MARK: deleted captures
+    //
+    // Captures the user deleted are listed (one base name per line) in deleted.txt in the library folder.
+    // They are never imported again, and their files are removed from the camera whenever it is connected.
+
+    static var deletedList: URL { root.appendingPathComponent("deleted.txt") }
+
+    /// "event_<serial>_<seq>_<time>Z" for any of a capture's files.
+    static func baseName(_ fileName: String) -> String {
+        String(fileName.split(separator: ".", maxSplits: 1).first ?? Substring(fileName))
+    }
+
+    static func deletedBases() -> Set<String> {
+        guard let text = try? String(contentsOf: deletedList, encoding: .utf8) else { return [] }
+        return Set(text.split(whereSeparator: \.isNewline).map(String.init).filter { !$0.isEmpty })
+    }
+
+    /// Moves every file of the given captures (media and sidecars) to the Trash and records them as deleted.
+    /// Returns how many captures were moved.
+    @discardableResult
+    static func trash(_ captures: [Capture]) throws -> Int {
+        let fm = FileManager.default
+        var bases: [String] = []
+        for c in captures {
+            let base = baseName(c.media.lastPathComponent)
+            let dir = c.media.deletingLastPathComponent()
+            let files = (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
+            for f in files where f.hasPrefix(base + ".") {
+                try fm.trashItem(at: dir.appendingPathComponent(f), resultingItemURL: nil)
+            }
+            bases.append(base)
+        }
+        let known = deletedBases()
+        let new = bases.filter { !known.contains($0) }
+        if !new.isEmpty {
+            let text = new.joined(separator: "\n") + "\n"
+            if let h = try? FileHandle(forWritingTo: deletedList) {
+                h.seekToEndOfFile(); h.write(Data(text.utf8)); try? h.close()
+            } else {
+                try text.write(to: deletedList, atomically: true, encoding: .utf8)
+            }
+        }
+        return bases.count
+    }
+
     static func meta(_ url: URL?) -> [String: Any] {
         guard let url, let d = try? Data(contentsOf: url),
               let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return [:] }

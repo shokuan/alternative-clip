@@ -32,13 +32,26 @@ enum Snapshot {
                     let caps = model.libraryDays.first { $0.day == model.libraryDay }?.captures ?? []
                     model.librarySelection = caps.dropFirst(caps.count / 2).first
                 }),
-                ("settings", { model.pane = .settings }),
+                ("library-multi", {
+                    let caps = model.libraryDays.first { $0.day == model.libraryDay }?.captures ?? []
+                    model.selectedCaptures = Set(caps.prefix(3))
+                    model.librarySelection = caps.first
+                }),
+                ("library-confirm", { model.pendingDelete = Array(model.selectedCaptures) }),
+                ("settings", { model.pendingDelete = nil; model.pane = .settings }),
                 ("battery", { model.pane = .battery }),
             ]
             for (name, act) in steps {
                 act()
                 try? await Task.sleep(for: .seconds(2.5))
                 save(dir.appendingPathComponent("\(name).png"))
+            }
+            if CommandLine.arguments.contains("--trash-test") {
+                // Deletes the first two captures of the chosen day (use only with a demo library).
+                model.pane = .library
+                let caps = model.libraryDays.first { $0.day == model.libraryDay }?.captures ?? []
+                model.trash(Array(caps.prefix(2)))
+                try? await Task.sleep(for: .seconds(2))
             }
             NSApp.terminate(nil)
         }
