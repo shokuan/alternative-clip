@@ -187,3 +187,14 @@
 "探してる…" = "Looking…";
 "今すぐ認識" = "Detect Now";
 "カメラが繋がっているか今すぐ確かめて、見つかったら読み込む" = "Check for the camera right now and read it if it's there";
+"「アプリケーション」フォルダに移動する？" = "Move to the Applications folder?";
+"アプリケーションフォルダに入れておくと、Launchpad や Spotlight から開けて、ログイン時の起動も確実に動くよ。" = "In the Applications folder it can be opened from Launchpad and Spotlight, and opening at login works reliably.";
+"移動する" = "Move to Applications";
+"移動しない" = "Don't Move";
+"今後表示しない" = "Don't ask again";
+"移動できなかった" = "Couldn't move the app";
+"Finder で「Alternative Clip」をアプリケーションフォルダにドラッグしてね。\n\n%@" = "Drag “Alternative Clip” to the Applications folder in Finder.\n\n%@";
+"アプリケーションフォルダにもう「%@」がある" = "“%@” is already in the Applications folder";
+"今あるほうをゴミ箱に入れて、これに置き換える？" = "Move the existing one to the Trash and replace it with this one?";
+"置き換える" = "Replace";
+"キャンセル" = "Cancel";

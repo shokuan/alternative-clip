@@ -8,6 +8,7 @@ struct AlternativeClipApp: App {
     init() {
         // Running from a bare executable (swift run) still gets a Dock icon and a key window.
         NSApplication.shared.setActivationPolicy(.regular)
+        MoveToApplications.offerIfNeeded()
     }
 
     var body: some Scene {

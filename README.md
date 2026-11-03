@@ -29,6 +29,7 @@ browse them, change capture settings and see how the battery is holding up.
 - **Battery** — charge and voltage over each discharge, from the data the camera stores with every capture.
 - **Clock** — sets the camera clock to the Mac's time after each import.
 - Open at login; English and Japanese.
+- Offers to move itself to the Applications folder if it's opened from somewhere else.
 
 Firmware updates and factory reset are deliberately left out.
 
