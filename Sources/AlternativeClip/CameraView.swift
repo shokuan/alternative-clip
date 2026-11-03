@@ -67,6 +67,7 @@ struct CameraView: View {
                 .font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
+            if model.connected && model.info == nil && !model.busy { detectButton }
             if model.connected {
                 Button { model.importNew() } label: { Label("取り込む", systemImage: "square.and.arrow.down") }
                     .buttonStyle(.borderedProminent).controlSize(.large)
@@ -75,11 +76,27 @@ struct CameraView: View {
         }
     }
 
+    private var detectButton: some View {
+        Button { model.detectNow() } label: {
+            if model.searching {
+                HStack(spacing: 6) { ProgressView().controlSize(.small); Text("探してる…") }
+            } else {
+                Label("今すぐ認識", systemImage: "dot.radiowaves.left.and.right")
+            }
+        }
+        .disabled(model.searching || model.busy)
+        .help("カメラが繋がっているか今すぐ確かめて、見つかったら読み込む")
+    }
+
     private var connectHint: some View {
-        Label {
-            Text("カメラをUSBで繋ぐと、自動で取り込みが始まるよ。繋いでから認識されるまで30秒くらいかかることがある。")
-        } icon: {
-            Image(systemName: "cable.connector")
+        HStack {
+            Label {
+                Text("カメラをUSBで繋ぐと、自動で取り込みが始まるよ。繋いでから認識されるまで30秒くらいかかることがある。")
+            } icon: {
+                Image(systemName: "cable.connector")
+            }
+            Spacer()
+            detectButton
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

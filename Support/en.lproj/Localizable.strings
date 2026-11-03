@@ -182,3 +182,8 @@
 "カメラに拒否された: %@" = "Rejected by the camera: %@";
 "照合エラー: %@" = "Verification error: %@";
 "Macの空き容量が足りない（5GBの余裕を残す設定）" = "Not enough free space on this Mac (5 GB is kept free)";
+"カメラがまだUSBに出てきてない。起動中かも。見つかったらすぐ読み込むね" = "The camera isn't on USB yet — it may still be starting up. It'll be read as soon as it shows up.";
+"90秒待ってもカメラが見つからなかった。ケーブルを挿し直してみて" = "No camera after 90 seconds. Try plugging the cable in again.";
+"探してる…" = "Looking…";
+"今すぐ認識" = "Detect Now";
+"カメラが繋がっているか今すぐ確かめて、見つかったら読み込む" = "Check for the camera right now and read it if it's there";

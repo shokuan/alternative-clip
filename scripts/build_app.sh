@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Builds "Alternative Clip.app" (universal: Apple silicon + Intel) into build/.
 #   scripts/build_app.sh            build only
-#   scripts/build_app.sh --install  also copy it to ~/Applications
+#   scripts/build_app.sh --install  also copy it to /Applications
 #   scripts/build_app.sh --zip      also make build/AlternativeClip.zip for a release
 set -e
 cd "$(dirname "$0")/.."
@@ -30,10 +30,9 @@ echo "built: $APP"
 for arg in "$@"; do
   case $arg in
     --install)
-      mkdir -p ~/Applications
-      rm -rf ~/Applications/"Alternative Clip.app"
-      cp -R "$APP" ~/Applications/
-      echo "installed: ~/Applications/Alternative Clip.app" ;;
+      rm -rf /Applications/"Alternative Clip.app"
+      cp -R "$APP" /Applications/
+      echo "installed: /Applications/Alternative Clip.app" ;;
     --zip)
       rm -f build/AlternativeClip.zip
       ditto -c -k --keepParent "$APP" build/AlternativeClip.zip

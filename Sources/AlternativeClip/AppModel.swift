@@ -103,6 +103,7 @@ final class AppModel: ObservableObject {
 
     private func deviceChanged(_ up: Bool) {
         connected = USBTransport.isConnected
+        if connected { stopSearching() }
         append(connected ? String(localized: "カメラが繋がった") : String(localized: "カメラが外れた"))
         if !connected {
             info = nil; settings = nil; cameraFiles = nil
@@ -117,6 +118,46 @@ final class AppModel: ObservableObject {
                 self.importNew(auto: true)
             }
         }
+    }
+
+    /// True while "Detect Now" is waiting for the camera to show up on USB.
+    @Published var searching = false
+    private var searchTimer: Timer?
+
+    /// Checks USB right away instead of waiting for the plug-in notification and the start-up delay.
+    /// If the camera isn't on USB yet (it's still booting), keeps checking every second for up to 90 s.
+    func detectNow() {
+        guard !busy, !Self.isSnapshotMode else { return }
+        if USBTransport.isConnected {
+            stopSearching()
+            if !connected { connected = true; append(String(localized: "カメラが繋がった")) }
+            refresh { [weak self] in
+                guard let self, self.autoImport, !self.importedThisConnection else { return }
+                self.importNew(auto: true)
+            }
+            return
+        }
+        guard !searching else { return }
+        append(String(localized: "カメラがまだUSBに出てきてない。起動中かも。見つかったらすぐ読み込むね"))
+        searching = true
+        let started = Date()
+        searchTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                if USBTransport.isConnected {
+                    self.stopSearching()
+                    self.detectNow()
+                } else if Date().timeIntervalSince(started) > 90 {
+                    self.stopSearching()
+                    self.append(String(localized: "90秒待ってもカメラが見つからなかった。ケーブルを挿し直してみて"))
+                }
+            }
+        }
+    }
+
+    private func stopSearching() {
+        searchTimer?.invalidate(); searchTimer = nil
+        searching = false
     }
 
     /// Runs `body` with an open camera on the USB queue, retrying while another process holds it.
@@ -176,7 +217,12 @@ final class AppModel: ObservableObject {
 
     func refresh(then: (() -> Void)? = nil) {
         withClip(String(localized: "カメラの情報を読み込み中…"), { clip, _ -> (Clip2.Info, Clip2.Settings, Clip2.Ranges, [(path: String, name: String, size: Int)]) in
-            (try clip.info(), try clip.settings(), clip.ranges(), try clip.eventFiles())
+            let t0 = Date()
+            let i = try clip.info(), s = try clip.settings(), rg = clip.ranges()
+            let t1 = Date()
+            let files = try clip.eventFiles()
+            AppModel.writeLogFile(String(format: "timing: info+settings %.1fs, file list %.1fs", t1.timeIntervalSince(t0), Date().timeIntervalSince(t1)))
+            return (i, s, rg, files)
         }) { [weak self] r in
             guard let self, case .success(let (i, s, rg, files)) = r else { return }
             self.info = i; self.settings = s; self.editing = s; self.ranges = rg

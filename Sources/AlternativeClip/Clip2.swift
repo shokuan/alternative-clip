@@ -61,7 +61,9 @@ final class Clip2 {
     /// Opens the camera. If it doesn't answer (its USB daemon can wedge after an interrupted
     /// command), port-reset it once and reopen; storage is not touched.
     init() throws {
+        let opened = Date()
         usb = try USBTransport()
+        defer { AppModel.writeLogFile(String(format: "timing: open %.1fs", Date().timeIntervalSince(opened))) }
         do {
             _ = try usb.controlIn(request: 4, index: Param.serial.rawValue, length: 1056, timeout: 3)
         } catch ClipError.timeout {

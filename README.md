@@ -17,6 +17,7 @@ browse them, change capture settings and see how the battery is holding up.
 
 - **Import** everything from the camera into a folder on your Mac (default `~/Pictures/Alternative Clip`, one
   sub-folder per day). Already-imported files are skipped. Imports start automatically when the camera is plugged in.
+  If the camera takes a while to show up, **Detect Now** (⇧⌘D) checks for it right away.
 - **Verify** — read every file from the camera again and compare it with the Mac copy (SHA-256).
 - **Free up the camera** — delete files from the camera *only* after they've been verified byte for byte.
 - **Library** — thumbnails by day, photo / video filter, video playback, per-capture metadata.
@@ -63,7 +64,7 @@ Needs Xcode (or a working Swift 5.9+ toolchain).
 ```bash
 git clone https://github.com/shokuan/alternative-clip.git
 cd alternative-clip
-scripts/build_app.sh --install   # builds "build/Alternative Clip.app" and copies it to ~/Applications
+scripts/build_app.sh --install   # builds "build/Alternative Clip.app" and copies it to /Applications
 ```
 
 `scripts/build_app.sh --zip` also makes `build/AlternativeClip.zip`.

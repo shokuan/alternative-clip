@@ -14,7 +14,7 @@ Alternative Clip は USB で直接カメラと通信するので、写真や動�
 
 ## できること
 
-- **取り込み**：カメラの中身を Mac のフォルダ（初期設定は `~/Pictures/Alternative Clip`、日付ごとのフォルダ）にコピー。取り込み済みのファイルは飛ばします。カメラを繋ぐと自動で始まります
+- **取り込み**：カメラの中身を Mac のフォルダ（初期設定は `~/Pictures/Alternative Clip`、日付ごとのフォルダ）にコピー。取り込み済みのファイルは飛ばします。カメラを繋ぐと自動で始まります。なかなか認識されないときは **今すぐ認識**（⇧⌘D）ですぐ確かめられます
 - **照合**：カメラのファイルをもう一度読み直して、Mac のコピーと一致するか確認（SHA-256）
 - **カメラを空ける**：バイト単位で一致を確認できたファイル**だけ**をカメラから削除
 - **ライブラリ**：日付ごとのサムネイル、写真／動画の切り替え、動画の再生、撮影ごとのメタデータ
@@ -56,7 +56,7 @@ Xcode（または動く Swift 5.9 以降のツールチェーン）が必要で�
 ```bash
 git clone https://github.com/shokuan/alternative-clip.git
 cd alternative-clip
-scripts/build_app.sh --install   # build/Alternative Clip.app を作って ~/Applications にコピー
+scripts/build_app.sh --install   # build/Alternative Clip.app を作って /Applications にコピー
 ```
 
 `scripts/build_app.sh --zip` で配布用の `build/AlternativeClip.zip` も作れます。

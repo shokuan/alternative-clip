@@ -21,6 +21,9 @@ struct AlternativeClipApp: App {
                 Button("新しいファイルを取り込む") { model.importNew() }
                     .keyboardShortcut("i")
                     .disabled(!model.connected || model.busy)
+                Button("今すぐ認識") { model.detectNow() }
+                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                    .disabled(model.busy || model.searching)
                 Button("ライブラリを再読み込み") { model.reloadLibrary() }
                     .keyboardShortcut("r")
             }
